@@ -2,16 +2,37 @@
   "name": "next-pablo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:mastra": "mastra dev --dir mastra",
+    "build:mastra": "mastra build --dir mastra",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.4.6"
+    "next-auth": "latest",
+    "@auth/drizzle-adapter": "^1",
+    "drizzle-orm": "^0",
+    "@neondatabase/serverless": "^0",
+    "zod": "^3",
+    "mastra": "latest",
+    "@mastra/core": "latest",
+    "@mastra/memory": "latest",
+    "@mastra/voice-openai": "latest",
+    "@mastra/voice-elevenlabs": "latest",
+    "@mastra/pg": "latest",
+    "@ai-sdk/openai": "^1",
+    "dotenv": "^16"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -22,6 +43,7 @@
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "@eslint/eslintrc": "^3"
+    "@eslint/eslintrc": "^3",
+    "drizzle-kit": "^0"
   }
 }
