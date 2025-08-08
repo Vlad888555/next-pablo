@@ -3,6 +3,11 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  // Auth on node runtime by importing auth() would be ideal, but to keep consistent with others:
+  const cookie = req.headers.get("cookie");
+  if (!cookie || !cookie.includes("next-auth.session-token")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
   const { text } = await req.json();
   if (!text || typeof text !== "string") {
     return new Response("Bad request", { status: 400 });
@@ -14,13 +19,18 @@ export async function POST(req: NextRequest) {
   // Simple ElevenLabs TTS REST call
   // Default voice id can be configured; here we use the "Rachel" voice as example via name
   // For production, resolve a voice ID and reuse it.
+  // Simple language detection: if contains Cyrillic - assume Russian
+  const isRussian = /[\u0400-\u04FF]/.test(text);
+  const voiceName = isRussian ? "Bella" : "Rachel"; // Example: choose different voices
+  const modelId = isRussian ? "eleven_multilingual_v2" : "eleven_monolingual_v1";
+
   const body = {
     text,
-    model_id: "eleven_monolingual_v1",
+    model_id: modelId,
     voice_settings: { stability: 0.5, similarity_boost: 0.5 },
   };
 
-  const resp = await fetch("https://api.elevenlabs.io/v1/text-to-speech/Rachel", {
+  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

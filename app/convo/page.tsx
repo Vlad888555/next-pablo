@@ -21,6 +21,13 @@ export default function ConvoPage() {
   }, [mediaRecorder]);
 
   const startRecording = async () => {
+    // Require login before recording
+    const s = await fetch("/api/me").then((r) => r.json()).catch(() => ({ ok: false }));
+    if (!s?.ok) {
+      alert("Please login to use voice recording.");
+      window.location.href = "/login";
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -92,6 +99,13 @@ export default function ConvoPage() {
   };
 
   const handleSendText = async () => {
+    // Require login before sending
+    const s = await fetch("/api/me").then((r) => r.json()).catch(() => ({ ok: false }));
+    if (!s?.ok) {
+      alert("Please login to send messages.");
+      window.location.href = "/login";
+      return;
+    }
     const userText = input.trim();
     if (!userText) return;
     setInput("");
@@ -123,58 +137,47 @@ export default function ConvoPage() {
   };
 
   return (
-    <main style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
-      <h1>Conversation</h1>
-
-      {/* Placeholder controls */}
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button disabled>Settings</button>
-        <button disabled>Language</button>
-        <button disabled>Help</button>
-      </div>
-
-      {/* Messages */}
-      <div
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          padding: 12,
-          marginTop: 16,
-          minHeight: 240,
-        }}
-      >
-        {messages.map((m, i) => (
-          <div key={i} style={{ marginBottom: 8 }}>
-            <strong>{m.role === "user" ? "You" : "Assistant"}:</strong> {m.content}
+    <main>
+      <div className="card" style={{ maxWidth: 900, margin: "24px auto" }}>
+        <div className="card-inner">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2>Conversation</h2>
+            <div className="row">
+              <button className="btn" disabled>Settings</button>
+              <button className="btn" disabled>Language</button>
+              <button className="btn" disabled>Help</button>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Text input fallback */}
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message"
-          style={{ flex: 1 }}
-        />
-        <button onClick={handleSendText}>Send</button>
-      </div>
+          <div className="messages card" style={{ marginTop: 12 }}>
+            <div className="card-inner">
+              {messages.length === 0 && (
+                <div className="footer-note">Start with a message or record your voice.</div>
+              )}
+              {messages.map((m, i) => (
+                <div key={i} className={`bubble ${m.role === "user" ? "bubble-user" : "bubble-assistant"}`}>
+                  <strong>{m.role === "user" ? "You" : "Assistant"}:</strong> {m.content}
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* Voice controls */}
-      <div style={{ marginTop: 16 }}>
-        {!isRecording ? (
-          <button onClick={startRecording} style={{ padding: "12px 20px" }}>
-            🎤 Start Recording
-          </button>
-        ) : (
-          <button onClick={stopRecording} style={{ padding: "12px 20px", background: "#ffe5e5" }}>
-            ⏹ Stop Recording
-          </button>
-        )}
-      </div>
+          <div className="row" style={{ marginTop: 12 }}>
+            <input className="input" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message" />
+            <button className="btn btn-primary" onClick={handleSendText}>Send</button>
+          </div>
 
-      <audio ref={audioRef} hidden />
+          <div className="row" style={{ marginTop: 12 }}>
+            {!isRecording ? (
+              <button className="btn btn-success" onClick={startRecording}>🎤 Start Recording</button>
+            ) : (
+              <button className="btn btn-danger" onClick={stopRecording}>⏹ Stop Recording</button>
+            )}
+          </div>
+
+          <audio ref={audioRef} hidden />
+        </div>
+      </div>
     </main>
   );
 }
