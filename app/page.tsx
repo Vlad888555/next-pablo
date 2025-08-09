@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 // Voices for different languages (adjust to the best multilingual voices available)
 const EN_VOICE = "verse"; // English
@@ -250,7 +250,6 @@ export default function Home() {
           ) : (
           <button className="btn btn-danger" onClick={disconnect}>Disconnect</button>
           )}
-          <button className="btn" onClick={async () => { disconnect(); await signOut({ redirect: false }); window.location.reload(); }}>Sign out</button>
           </div>
           </div>
           <div className="footer-note" style={{ marginTop: 8 }}>Status: {status}</div>

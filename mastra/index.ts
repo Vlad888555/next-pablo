@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Mastra } from "@mastra/core/mastra";
 import { Agent } from "@mastra/core/agent";
 import { openai } from "@ai-sdk/openai";
@@ -13,11 +14,13 @@ if (process.env.DATABASE_URL) {
 const memory = new Memory({});
 
 export const simpleAgent = new Agent({
-  name: "simple-agent",
+  name: "Simple Agent",
   instructions: "You are a concise assistant.",
-  model: openai("gpt-4.1-mini"),
+  model: openai("gpt-4o-mini"),
   memory,
 });
+
+export default simpleAgent;
 
 export const mastra = new Mastra({
   agents: { simpleAgent },

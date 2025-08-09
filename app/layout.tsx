@@ -1,5 +1,6 @@
 import "./globals.css";
 import Link from "next/link";
+import SignOutButton from "./components/SignOutButton";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,9 +10,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="container nav">
             <Link className="link" href="/"><div className="brand">next-pablo </div></Link>
             <nav className="navlinks">
-              <Link className="link" href="/convo">Conversation</Link>
               <Link className="link" href="/room">Home</Link>
               <Link className="link" href="/register">Register</Link>
+              <SignOutButton />
             </nav>
           </div>
         </header>
