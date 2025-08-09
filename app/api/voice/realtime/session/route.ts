@@ -20,8 +20,7 @@ export async function POST(_: NextRequest) {
     body: JSON.stringify({
       model: "gpt-4o-realtime-preview",
       // default voice; client may change it later via session.update over datachannel
-      voice: "verse",
-      modalities: ["text", "audio"],
+      modalities: ["text"],
     }),
   });
 

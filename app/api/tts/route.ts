@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     const payload = {
       text,
-      model_id: "eleven_turbo_v2_5", // robust, recommended; good EN/RU
+      model_id: "eleven_multilingual_v2", // robust, recommended; good EN/RU
       output_format: "mp3_44100_128", // standard, widely supported
       // Optional: fine-tune delivery; tweak if needed in the future
       // voice_settings: {

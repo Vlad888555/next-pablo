@@ -172,7 +172,6 @@ export default function Room() {
             session: {
               instructions:
                 "You are a helpful assistant. Always reply in the same language the user is speaking. If the user speaks English, use native, neutral (accent-free) English. If the user speaks Russian, speak natural Russian.",
-              modalities: ["text"],
             },
           })
         );
@@ -182,6 +181,7 @@ export default function Room() {
       dc.onmessage = async (ev) => {
         try {
           const obj = JSON.parse(ev.data);
+          console.log("OpenAI event:", obj);
 
           // accumulate text deltas for the assistant's output
           if (obj?.response?.output_text?.delta && typeof obj.response.output_text.delta === "string") {

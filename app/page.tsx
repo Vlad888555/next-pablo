@@ -213,25 +213,6 @@ export default function Home() {
           <div className="card-inner" style={{ display: "grid", gap: 16 }}>
             <h2>Welcome</h2>
             <div className="footer-note">Register or Login to start a real-time conversation.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div className="card">
-                <div className="card-inner" style={{ display: "grid", gap: 8 }}>
-                  <h3>Create account</h3>
-                  <input className="input" id="reg-name" name="reg-name" autoComplete="name" placeholder="Name" value={regName} onChange={(e) => setRegName(e.target.value)} />
-                  <input className="input" id="reg-email" name="reg-email" autoComplete="email" placeholder="Email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
-                  <input className="input" id="reg-password" name="reg-password" autoComplete="new-password" placeholder="Password" type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
-                  <button className="btn btn-primary" onClick={handleRegister}>Register</button>
-                </div>
-              </div>
-              <div className="card">
-                <div className="card-inner" style={{ display: "grid", gap: 8 }}>
-                  <h3>Login</h3>
-                  <input className="input" id="login-email" name="login-email" autoComplete="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-                  <input className="input" id="login-password" name="login-password" autoComplete="current-password" placeholder="Password" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-                  <button className="btn btn-primary" onClick={handleLogin}>Login</button>
-                </div>
-              </div>
-            </div>
             {msg && <div>{msg}</div>}
           </div>
         </div>
