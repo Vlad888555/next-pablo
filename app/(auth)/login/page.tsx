@@ -26,7 +26,7 @@ export default function LoginPage() {
             <button className="btn btn-primary" onClick={submit}>Login</button>
           </div>
           {msg && <div>{msg}</div>}
-          <div className="footer-note">Don't have an account? <a className="link" href="/register">Register</a></div>
+          <div className="footer-note">Don&apos;t have an account? <a className="link" href="/register">Register</a></div>
         </div>
       </div>
     </main>

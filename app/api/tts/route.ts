@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
     if (!ttsResp.ok || !ttsResp.body) {
       const ct = ttsResp.headers.get("content-type") || "";
-      let details: any = null;
+      let details: unknown = null;
       if (ct.includes("application/json")) {
         details = await ttsResp.json().catch(() => null);
       } else {
@@ -66,14 +66,15 @@ export async function POST(req: Request) {
     }
 
     const ab = await ttsResp.arrayBuffer();
-    return new NextResponse(ab as any, {
+    return new NextResponse(ab, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
       },
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

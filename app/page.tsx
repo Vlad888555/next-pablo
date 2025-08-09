@@ -78,8 +78,9 @@ export default function Home() {
       } else {
         setLoggedIn(true);
       }
-    } catch (e: any) {
-      setMsg(e?.message || "Registration error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Registration error";
+      setMsg(message);
     }
   }
 
@@ -183,8 +184,9 @@ export default function Home() {
       const answerSdp = await sdpResp.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
       setStatus("Ready");
-    } catch (e: any) {
-      setStatus(e?.message || "Connect error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Connect error";
+      setStatus(message);
     }
   };
 
@@ -196,7 +198,7 @@ export default function Home() {
       micStreamRef.current = null;
       setConnected(false);
       setStatus("Disconnected");
-    } catch (e) {
+    } catch {
       // ignore
     }
   };

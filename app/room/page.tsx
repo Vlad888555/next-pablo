@@ -114,7 +114,7 @@ export default function Room() {
         const r = await fetch("/api/auth/session");
         const j = await r.json();
         setLoggedIn(!!j?.user);
-      } catch (_) {
+      } catch {
         setLoggedIn(false);
       } finally {
         setChecking(false);
@@ -238,8 +238,9 @@ export default function Room() {
       const answerSdp = await sdpResp.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
       setStatus("Ready");
-    } catch (e: any) {
-      setStatus(e?.message || "Connect error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Connect error";
+      setStatus(message);
     }
   };
 
@@ -251,7 +252,7 @@ export default function Room() {
       micStreamRef.current = null;
       setConnected(false);
       setStatus("Disconnected");
-    } catch (_) {
+    } catch {
       // ignore
     }
   };

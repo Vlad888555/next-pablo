@@ -1,11 +1,11 @@
-import NextAuth, { getServerSession, type NextAuthOptions } from "next-auth";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { getDb } from "./db/drizzle";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { users, accounts, sessions, verificationTokens } from "./db/schema.auth";
 import { eq } from "drizzle-orm";
-import { createHash, randomBytes } from "crypto";
+import { createHash } from "crypto";
 import { ensureAuthTables } from "./db/init";
 
 const haveDb = !!process.env.DATABASE_URL;
@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
         const [salt, stored] = user.passwordHash.split(":");
         const hashed = hashPassword(password, salt);
         if (hashed !== stored) return null;
-        return { id: user.id, name: user.name ?? null, email: user.email ?? null } as any;
+        return { id: user.id, name: user.name ?? null, email: user.email ?? null } as { id: string; name: string | null; email: string | null };
       },
     }),
     GitHub({
@@ -62,11 +62,13 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
   callbacks: {
     async jwt({ token, user }) {
-      if (user && (user as any).id) token.id = (user as any).id as string;
+      const u = user as { id?: string } | undefined;
+      if (u?.id) token.id = u.id;
       return token;
     },
     async session({ session, token }) {
-      if (token?.id) (session.user as any).id = token.id as string;
+      const t = token as { id?: string };
+      if (t?.id && session.user) (session.user as { id?: string }).id = t.id;
       return session;
     },
   },
