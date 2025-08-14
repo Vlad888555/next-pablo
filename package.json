@@ -1,0 +1,50 @@
+{
+  "name": "next-pablo",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "dev:mastra": "mastra dev --dir mastra",
+    "build:mastra": "mastra build --dir mastra",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1",
+    "@auth/drizzle-adapter": "^1",
+    "@mastra/core": "latest",
+    "@mastra/memory": "latest",
+    "@mastra/pg": "latest",
+    "@mastra/voice-elevenlabs": "latest",
+    "@mastra/voice-openai": "latest",
+    "@neondatabase/serverless": "^0",
+    "dotenv": "^16",
+    "drizzle-orm": "^0",
+    "groq-sdk": "^0.30.0",
+    "mastra": "latest",
+    "next": "15.4.6",
+    "next-auth": "latest",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "19.1.10",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
