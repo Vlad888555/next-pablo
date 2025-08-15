@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signIn } from "next-auth/react";
 
-// Define types for Web Speech API (only for non-standard or to augment)
 declare global {
   interface Window {
     SpeechRecognition?: new () => SpeechRecognition;
@@ -21,66 +19,47 @@ interface SpeechRecognition {
   start: () => void;
   stop: () => void;
 }
-
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
 }
-
 interface SpeechRecognitionResultList {
   length: number;
   [index: number]: SpeechRecognitionResult;
 }
-
 interface SpeechRecognitionResult {
   isFinal: boolean;
   [index: number]: SpeechRecognitionAlternative;
 }
-
 interface SpeechRecognitionAlternative {
   transcript: string;
 }
-
 interface SpeechRecognitionErrorEvent extends Event {
   error: string;
 }
-
-// Use built-in types for SpeechSynthesis
-// No need to redefine SpeechSynthesis, SpeechSynthesisVoice, SpeechSynthesisUtterance as they are in lib.dom.d.ts
 
 function hasCyrillic(s: string) {
   return /[\u0400-\u04FF]/.test(s);
 }
 
 export default function Home() {
-  // Auth state via /api/auth/session
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [checking, setChecking] = useState<boolean>(true);
 
-  // Register form state (separate from login)
-  const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-
-  // Login form state (separate from register)
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  const [msg, setMsg] = useState<string | null>(null);
-
-  // Realtime state
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState("");
   const currentLangRef = useRef<string>("en-US");
+  const lastLangsRef = useRef<string[]>([]);
+  const sendingRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Check session
   useEffect(() => {
     (async () => {
       try {
         const r = await fetch("/api/auth/session");
         const j = await r.json();
         setLoggedIn(!!j?.user);
-      } catch (_) {
+      } catch {
         setLoggedIn(false);
       } finally {
         setChecking(false);
@@ -88,52 +67,24 @@ export default function Home() {
     })();
   }, []);
 
-  // Auto-connect when logged in
   useEffect(() => {
-    if (loggedIn && !connected) {
-      connect();
-    }
+    if (loggedIn && !connected) connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn]);
 
-  async function handleRegister() {
-    setMsg(null);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: regEmail, password: regPassword, name: regName }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMsg(data.error || "Registration failed");
-        return;
-      }
-      const s = await signIn("credentials", { redirect: false, email: regEmail, password: regPassword });
-      if (s?.error) {
-        setMsg(s.error);
-      } else {
-        setLoggedIn(true);
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Registration error";
-      setMsg(message);
-    }
-  }
-
-  async function handleLogin() {
-    setMsg(null);
-    const res = await signIn("credentials", { redirect: false, email: loginEmail, password: loginPassword });
-    if (res?.error) setMsg(res.error);
-    else setLoggedIn(true);
-  }
+  const waitAudioEnded = (audio: HTMLAudioElement) =>
+    new Promise<void>((resolve) => {
+      const onEnd = () => {
+        audio.removeEventListener("ended", onEnd);
+        resolve();
+      };
+      audio.addEventListener("ended", onEnd);
+    });
 
   const connect = async () => {
     setStatus("Connecting...");
     try {
       const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const synthesis = window.speechSynthesis;
-
       if (!SpeechRecognitionClass) {
         setStatus("Browser does not support Speech Recognition API");
         return;
@@ -144,136 +95,194 @@ export default function Home() {
       recognition.interimResults = true;
       recognition.lang = currentLangRef.current;
 
+      recognition.onend = () => {
+        if (connected && !sendingRef.current) {
+          try {
+            recognition.start();
+          } catch {}
+        }
+      };
+
+      recognition.onerror = (ev: SpeechRecognitionErrorEvent) => {
+        setStatus(`SpeechRecognition error: ${ev.error}`);
+      };
+
       recognition.onresult = async (event: SpeechRecognitionEvent) => {
         const lastResult = event.results[event.results.length - 1];
-        const transcript = lastResult[0].transcript;
+        const transcriptRaw = lastResult[0].transcript || "";
+        const transcript = transcriptRaw.trim();
         const isFinal = lastResult.isFinal;
 
-        // Detect language from text
+        if (!transcript) return;
+
+        // detect language stabilize
         const detectedLang = hasCyrillic(transcript) ? "ru-RU" : "en-US";
+        lastLangsRef.current.push(detectedLang);
+        if (lastLangsRef.current.length > 3) lastLangsRef.current.shift();
+        const counts = lastLangsRef.current.reduce((acc: Record<string, number>, l) => {
+          acc[l] = (acc[l] || 0) + 1;
+          return acc;
+        }, {});
+        const mostFrequentLang = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
 
-        if (detectedLang !== currentLangRef.current) {
-          currentLangRef.current = detectedLang;
-          recognition.lang = detectedLang;
+        if (mostFrequentLang && mostFrequentLang !== currentLangRef.current) {
+          currentLangRef.current = mostFrequentLang;
+          try { recognition.stop(); } catch {}
+          setTimeout(() => {
+            try { recognition.lang = mostFrequentLang; recognition.start(); } catch {}
+          }, 200);
+          return;
         }
 
-        if (isFinal) {
-          try {
-            // Send to server proxy for Groq API completion
-            const res = await fetch("/api/groq/chat", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                message: transcript,
-                lang: detectedLang,
-              }),
-            });
-            if (!res.ok) {
-              throw new Error("Groq response failed");
-            }
-            const { response } = await res.json();
+        if (!isFinal) return;
+        if (sendingRef.current) {
+          console.log("Ignored final because currently sending/playing");
+          return;
+        }
 
-            // Use browser TTS to speak the response
-            const utterance = new SpeechSynthesisUtterance(response);
-            utterance.lang = detectedLang;
-            
-            console.log("Groq response:", response);
-            // Select a voice matching the language
-            
-            const ttsRes = await fetch("/api/tts", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: response }),
-            });
-            
-            if (!ttsRes.ok) {
-              console.error("TTS error", await ttsRes.text());
-              return;
-            }
+        // mark busy and stop recognition to avoid capturing user's voice during playback
+        sendingRef.current = true;
+        try {
+          try { recognition.stop(); } catch {}
+          setStatus("Processing (Groq)...");
 
-            const audioBlob = await ttsRes.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
-            new Audio(audioUrl).play();
+          // Get full reply from Groq (no streaming)
+          const groqRes = await fetch("/api/groq/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: transcript, lang: currentLangRef.current }),
+          });
 
-            }catch (e) {
-            console.error(e);
-            setStatus("Error processing response");
+          if (!groqRes.ok) {
+            const txt = await groqRes.text().catch(() => "");
+            throw new Error("Groq failed: " + txt);
           }
+
+          const groqJson = await groqRes.json();
+          const fullResponse = (groqJson.reply || groqJson.text || "").toString().trim();
+
+          if (!fullResponse) {
+            setStatus("No assistant response");
+            sendingRef.current = false;
+            try { recognition.start(); } catch {}
+            return;
+          }
+
+          console.log("Full assistant response:", fullResponse);
+
+          // TTS request (one request only)
+          setStatus("Synthesizing speech...");
+          const ttsRes = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: fullResponse, lang: currentLangRef.current }),
+          });
+
+          if (!ttsRes.ok) {
+            // try to parse provider JSON error
+            let errMsg = "TTS request failed";
+            try {
+              const errJson = await ttsRes.json();
+              errMsg = `${errJson.error || errJson.message || "TTS failed"}${errJson.provider ? ` (provider: ${errJson.provider})` : ""}${errJson.details ? ` — ${String(errJson.details).slice(0, 300)}` : ""}`;
+            } catch {
+              const txt = await ttsRes.text().catch(() => "");
+              if (txt) errMsg = txt;
+            }
+            console.error("TTS error:", errMsg);
+            setStatus(errMsg);
+            sendingRef.current = false;
+            try { recognition.start(); } catch {}
+            return;
+          }
+
+          const audioBlob = await ttsRes.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audioRef.current = audio;
+
+          try {
+            await audio.play();
+          } catch (playErr) {
+            console.warn("audio.play() rejected, using browser fallback", playErr);
+            URL.revokeObjectURL(audioUrl);
+            // fallback to browser TTS so user hears something
+            const u = new SpeechSynthesisUtterance(fullResponse);
+            u.lang = currentLangRef.current.startsWith("ru") ? "ru-RU" : "en-US";
+            speechSynthesis.cancel();
+            speechSynthesis.speak(u);
+            await new Promise<void>((resolve) => {
+              u.onend = () => resolve();
+              u.onerror = () => resolve();
+            });
+            sendingRef.current = false;
+            setStatus("Ready (fallback)");
+            try { recognition.start(); } catch {}
+            return;
+          }
+
+          await waitAudioEnded(audio);
+          URL.revokeObjectURL(audioUrl);
+
+          sendingRef.current = false;
+          setStatus("Ready");
+          try { recognition.start(); } catch {}
+        } catch (err: any) {
+          console.error("Processing / TTS error:", err);
+          setStatus("Error: " + (err.message || String(err)));
+          sendingRef.current = false;
+          try { recognition.start(); } catch {}
         }
       };
 
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        setStatus(`Error: ${event.error}`);
-      };
-
-      recognition.onend = () => {
-        if (connected) {
-          recognition.start(); // Restart for continuous listening
-        }
-      };
-
-      recognition.start();
       recognitionRef.current = recognition;
+      recognition.start();
       setConnected(true);
       setStatus("Ready");
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Connect error";
-      setStatus(message);
+    } catch (err: any) {
+      console.error("Connect failed", err);
+      setStatus("Connect error: " + (err?.message || String(err)));
     }
   };
 
   const disconnect = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+    recognitionRef.current = null;
     setConnected(false);
     setStatus("Disconnected");
   };
 
   if (checking) return null;
 
-  // Not logged in: show combined Register + Login on the same page
   if (!loggedIn) {
     return (
       <main>
-        <div className="card" style={{ maxWidth: 1000, margin: "40px auto" }}>
-          <div className="card-inner" style={{ display: "grid", gap: 16 }}>
-            <h2>Welcome</h2>
-            <div className="footer-note">Register or Login to start a real-time conversation.</div>
-            {msg && <div>{msg}</div>}
-          </div>
+        <div style={{ maxWidth: 1000, margin: "40px auto" }}>
+          <h2>Welcome</h2>
+          <div>Register or Login to start a real-time conversation.</div>
         </div>
       </main>
     );
   }
 
-  // Logged in: show real-time conversation (no toggles; language auto-detected)
   return (
     <main>
-      <div className="card" style={{ maxWidth: 900, margin: "24px auto" }}>
-        <div className="card-inner">
-          <div className="row" style={{ justifyContent: "space-between" }}>
+      <div style={{ maxWidth: 900, margin: "24px auto" }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
             <h2>Your Room — Realtime Conversation</h2>
-            <div className="row" style={{ gap: 8 }}>
-              {!connected ? (
-                <button className="btn btn-success" onClick={connect}>
-                  Connect
-                </button>
-              ) : (
-                <button className="btn btn-danger" onClick={disconnect}>
-                  Disconnect
-                </button>
-              )}
+            <div style={{ gap: 8 }}>
+              {!connected ? <button onClick={connect}>Connect</button> : <button onClick={disconnect}>Disconnect</button>}
             </div>
           </div>
-          <div className="footer-note" style={{ marginTop: 8 }}>Status: {status}</div>
-          <div className="card" style={{ marginTop: 12 }}>
-            <div className="card-inner">
-              <p className="footer-note">
-                Speak freely. The assistant detects your language and replies in the same language with a matching voice.
-              </p>
-            </div>
+
+          <div style={{ marginTop: 8 }}>
+            Status: {status} {sendingRef.current ? "(busy)" : ""}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <p>Speak freely. The assistant detects your language and replies in the same language with a matching voice.</p>
           </div>
         </div>
       </div>

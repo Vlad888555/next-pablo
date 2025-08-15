@@ -6,16 +6,21 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Missing text" }), { status: 400 });
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY; // без NEXT_PUBLIC_
-    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const voiceIdEn = process.env.ELEVENLABS_VOICE_ID_EN; // голос для английского
+    const voiceIdRu = process.env.ELEVENLABS_VOICE_ID_RU; // голос для русского
 
-    if (!apiKey || !voiceId) {
-      console.error("Missing ElevenLabs API key or voice ID");
+    if (!apiKey || !voiceIdEn || !voiceIdRu) {
+      console.error("Missing ElevenLabs API key or voice IDs");
       return new Response(JSON.stringify({ error: "Server config missing" }), { status: 500 });
     }
 
+    // Определяем язык по наличию кириллицы
+    const isRussian = /[а-яА-ЯёЁ]/.test(text);
+    const selectedVoiceId = isRussian ? voiceIdRu : voiceIdEn;
+
     const elevenRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
       {
         method: "POST",
         headers: {
