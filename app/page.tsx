@@ -192,7 +192,7 @@ export default function Home() {
           sendingRef.current = false;
           setStatus("Ready");
           try { recognition.start(); } catch {}
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Processing / TTS error:", err);
           setStatus("Error: " + (err.message || String(err)));
           sendingRef.current = false;
@@ -204,7 +204,7 @@ export default function Home() {
       recognition.start();
       setConnected(true);
       setStatus("Ready");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Connect failed", err);
       setStatus("Connect error: " + (err?.message || String(err)));
     }
