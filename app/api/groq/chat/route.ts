@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     }
 
     // Определяем язык ответа
-    const language = lang.startsWith("ru") ? "Russian" : "English";
     const availableModel = "llama-3.3-70b-versatile";
 
     // Запрос без стриминга
