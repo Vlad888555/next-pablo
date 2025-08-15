@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+interface RegisterResponse {
+  error?: string;
+  [key: string]: unknown;
+}
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +35,7 @@ export default function RegisterPage() {
       });
 
       const ct = res.headers.get("content-type") || "";
-      let data: any;
+
       if (!ct.includes("application/json")) {
         const text = await res.text();
         console.error("Non-JSON response from /api/register:", text);
@@ -39,7 +43,7 @@ export default function RegisterPage() {
         setIsLoading(false);
         return;
       }
-       data = await res.json();
+        const data: RegisterResponse = await res.json();
 
       if (!res.ok) {
         setMsg(data?.error || "Ошибка регистрации. Попробуйте снова.");
