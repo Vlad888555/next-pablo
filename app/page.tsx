@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-
 function hasCyrillic(s: string) {
   return /[\u0400-\u04FF]/.test(s);
 }
@@ -194,7 +193,11 @@ export default function Home() {
           try { recognition.start(); } catch {}
         } catch (err: unknown) {
           console.error("Processing / TTS error:", err);
-          setStatus("Error: " + (err.message || String(err)));
+          if (err instanceof Error) {
+            setStatus("Error: " + err.message);
+          } else {
+            setStatus("Error: " + String(err));
+          }
           sendingRef.current = false;
           try { recognition.start(); } catch {}
         }
@@ -206,7 +209,11 @@ export default function Home() {
       setStatus("Ready");
     } catch (err: unknown) {
       console.error("Connect failed", err);
-      setStatus("Connect error: " + (err?.message || String(err)));
+      if (err instanceof Error) {
+        setStatus("Connect error: " + err.message);
+      } else {
+        setStatus("Connect error: " + String(err));
+      }
     }
   };
 
